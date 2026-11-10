@@ -10,9 +10,10 @@ from dotenv import load_dotenv
 import requests
 from telegram import Bot
 
-@dataclass
+@dataclass(frozen=True)
 class StrikeInfo:
     """Class for categorize a single event"""
+
     date: str
     link: str
     
@@ -58,20 +59,9 @@ try:
 except FileNotFoundError:
     saved_strikes = []
 
-#new empty set
-saved_id = set()
-
-for strike in saved_strikes:
-    strike_id = (strike.date, strike.link)
-    saved_id.add(strike_id)
-
-new_strikes = []
-
-for strike in strikes_list:
-    strike_id = (strike.date, strike.link)
-
-    if strike_id not in saved_id:
-        new_strikes.append(strike)
+#management of duplicate data
+saved_set = set(saved_strikes)
+new_strikes = [strike for strike in strikes_list if strike not in saved_set]
 
 if new_strikes:
     print("Attention! New strikes found:")
@@ -92,7 +82,7 @@ async def send_telegram_message(text):
 
 async def notify_new_strike():
     for strike in new_strikes:
-        message = f"New TPL FVG strike!\nDate: {strike['date']}\nLink: {strike['link']}"
+        message = f"New TPL FVG strike!\nDate: {strike.date}\nLink: {strike.link}"
         await send_telegram_message(message)
 
 asyncio.run(notify_new_strike())
