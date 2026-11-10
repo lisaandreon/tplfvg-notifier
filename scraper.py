@@ -1,17 +1,21 @@
-import requests
-from bs4 import BeautifulSoup
-
-from urllib.parse import urljoin
-
-import json
-
 import asyncio
-from telegram import Bot
-
+import json
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from urllib.parse import urljoin
+from dataclasses import dataclass, asdict
 
+from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+import requests
+from telegram import Bot
+
+@dataclass
+class StrikeInfo:
+    """Class for categorize a single event"""
+    date: str
+    link: str
+    
 load_dotenv(Path(__file__).with_name(".env"), override=True)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -36,18 +40,19 @@ for card in bus_strikes:
         continue
 
     card_link = card.get("href")
-    
-    strike = {
-        "date": card_date.text,
-        "link": urljoin("https://tplfvg.it", card_link)
-    }
+
+    strike = StrikeInfo(
+        date=card_date.text,
+        link=urljoin("https://tplfvg.it", card_link)
+    )
 
     strikes_list.append(strike)
 
 #json file already exists and can ben read
 try:
     with open("tplstrikes.json", "r", encoding="utf-8") as file:
-        saved_strikes = json.load(file)
+        raw_data = json.load(file)
+        saved_strikes = [StrikeInfo(**item) for item in raw_data]
 
 #json file doesn't exists
 except FileNotFoundError:
@@ -57,13 +62,13 @@ except FileNotFoundError:
 saved_id = set()
 
 for strike in saved_strikes:
-    strike_id = (strike["date"], strike["link"])
+    strike_id = (strike.date, strike.link)
     saved_id.add(strike_id)
 
 new_strikes = []
 
 for strike in strikes_list:
-    strike_id = (strike["date"], strike["link"])
+    strike_id = (strike.date, strike.link)
 
     if strike_id not in saved_id:
         new_strikes.append(strike)
@@ -71,7 +76,7 @@ for strike in strikes_list:
 if new_strikes:
     print("Attention! New strikes found:")
     for strike in new_strikes:
-        print(strike["date"], "-", strike["link"])
+        print(strike.date, "-", strike.link)
 else:
     print("Nothing new.")
 
@@ -93,6 +98,7 @@ async def notify_new_strike():
 asyncio.run(notify_new_strike())
 
 #json file created/updated
+data_to_save = [asdict(strike) for strike in saved_strikes]
 with open("tplstrikes.json", "w", encoding="utf-8") as file:
-    json.dump(saved_strikes, file, indent=4)
+    json.dump(data_to_save, file, indent=4)
 
