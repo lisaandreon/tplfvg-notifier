@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urljoin
 from dataclasses import dataclass, asdict
@@ -9,6 +10,31 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import requests
 from telegram import Bot
+from telegram.error import TelegramError
+
+load_dotenv(Path(__file__).with_name(".env"), override=True)
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = int(os.getenv("CHAT_ID"))
+
+#network errors management
+URL = "https://tplfvg.it/it/servizi/scioperi/"
+
+try:
+    page = requests.get(URL, timeout=10)
+    page.raise_for_status()
+except requests.exceptions.Timeout:
+    print("Error: the request took too long.")
+    sys.exit(1)
+except requests.exceptions.ConnectionError:
+    print("Server connection error.")
+    sys.exit(1)
+except requests.exceptions.HTTPError as err:
+    print(f"HTTP error received from the server: {err}")
+    sys.exit(1)
+except requests.exceptions.RequestException as err:
+    print(f"Generic network error: {err}")
+    sys.exit(1)
 
 @dataclass(frozen=True)
 class StrikeInfo:
@@ -16,38 +42,31 @@ class StrikeInfo:
 
     date: str
     link: str
-    
-load_dotenv(Path(__file__).with_name(".env"), override=True)
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
-
-URL = "https://tplfvg.it/it/servizi/scioperi/"
-page = requests.get(URL)
-page.raise_for_status() #rising an exception when server returns http error
 
 soup = BeautifulSoup(page.content, "html.parser")
-
 strikes_box = soup.find("div", class_="w-block-cards block-cards")
-bus_strikes = strikes_box.find_all("a", class_="card")
 
 strikes_list = []
 
-for card in bus_strikes:
-    card_date = card.find("h2", class_="card-title")
+#check the extracted content to avoid `AttributeError`
+if strikes_box:
+    bus_strikes = strikes_box.find_all("a", class_="card")
 
-    #managing missing data
-    if card_date is None: 
-        continue
+    for card in bus_strikes:
+        card_date = card.find("h2", class_="card-title")
 
-    card_link = card.get("href")
+        #managing missing data
+        if card_date is None: 
+            continue
 
-    strike = StrikeInfo(
-        date=card_date.text,
-        link=urljoin("https://tplfvg.it", card_link)
-    )
+        card_link = card.get("href")
 
-    strikes_list.append(strike)
+        strike = StrikeInfo(
+            date=card_date.text.strip(),
+            link=urljoin("https://tplfvg.it", card_link)
+        )
+
+        strikes_list.append(strike)
 
 #json file already exists and can ben read
 try:
@@ -63,29 +82,32 @@ except FileNotFoundError:
 saved_set = set(saved_strikes)
 new_strikes = [strike for strike in strikes_list if strike not in saved_set]
 
-if new_strikes:
-    print("Attention! New strikes found:")
-    for strike in new_strikes:
-        print(strike.date, "-", strike.link)
-else:
-    print("Nothing new.")
-
-saved_strikes.extend(new_strikes)
-
 #telegram bot notifying system 
 async def send_telegram_message(text):
     bot = Bot(token=BOT_TOKEN)
-    await bot.send_message(
-        chat_id=CHAT_ID,
-        text=text
-    )
+    try:
+        await bot.send_message(
+            chat_id=CHAT_ID,
+            text=text
+        )
+    except TelegramError as err:
+        print(f"Error while sending Telegram notification: {err}")
 
 async def notify_new_strike():
     for strike in new_strikes:
         message = f"New TPL FVG strike!\nDate: {strike.date}\nLink: {strike.link}"
         await send_telegram_message(message)
 
-asyncio.run(notify_new_strike())
+#notifying system optimization
+if new_strikes:
+    print("Attention! New strikes found:")
+    for strike in new_strikes:
+        print(strike.date, "-", strike.link)
+    asyncio.run(notify_new_strike())
+else:
+    print("Nothing new.")
+
+saved_strikes.extend(new_strikes)
 
 #json file created/updated
 data_to_save = [asdict(strike) for strike in saved_strikes]
