@@ -1,0 +1,22 @@
+[project]
+name = "tpl-scraping"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Lisa Andreon", email = "lisaandreon04@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "dotenv>=0.9.9",
+    "python-telegram-bot>=22.8",
+    "requests>=2.34.2",
+]
+
+[project.scripts]
+tpl-scraping = "tpl_scraping:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"

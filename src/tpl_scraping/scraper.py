@@ -11,11 +11,12 @@ from dotenv import load_dotenv
 import requests
 from telegram import Bot
 from telegram.error import TelegramError
+from typing import Optional
 
+BOT_TOKEN: Optional[str] = None
+
+#telegram bot credentials management
 load_dotenv(Path(__file__).with_name(".env"), override=True)
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
 
 #network errors management
 URL = "https://tplfvg.it/it/servizi/scioperi/"
