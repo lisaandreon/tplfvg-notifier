@@ -1,58 +1,50 @@
-import os
-import sys
-from pathlib import Path
+import logging
+from dataclasses import dataclass
 from urllib.parse import urljoin
 
-from dotenv import load_dotenv
 import requests
-
-from dataclasses import dataclass, asdict
-
 from bs4 import BeautifulSoup
 
+__all__ = [
+    "StrikeInfo",
+    "fetch_strikes_page",
+    "parse_strikes",
+    "get_strikes"
+]
 
-from typing import Optional
+logger = logging.getLogger(__name__)
 
-BOT_TOKEN: Optional[str] = None
-CHAT_ID: Optional[str] = None
+BASE_URL = "https://tplfvg.it"
+STRIKES_URL = "https://tplfvg.it/it/servizi/scioperi/"
 
-
-#telegram bot credentials management
-load_dotenv(Path(__file__).with_name(".env"), override=True)
-
-#network errors management
-URL = "https://tplfvg.it/it/servizi/scioperi/"
-
-try:
-    page = requests.get(URL, timeout=10)
-    page.raise_for_status()
-except requests.exceptions.Timeout:
-    print("Error: the request took too long.")
-    sys.exit(1)
-except requests.exceptions.ConnectionError:
-    print("Server connection error.")
-    sys.exit(1)
-except requests.exceptions.HTTPError as err:
-    print(f"HTTP error received from the server: {err}")
-    sys.exit(1)
-except requests.exceptions.RequestException as err:
-    print(f"Generic network error: {err}")
-    sys.exit(1)
 
 @dataclass(frozen=True)
 class StrikeInfo:
     """Class for categorize a single event"""
-
     date: str
     link: str
 
-soup = BeautifulSoup(page.content, "html.parser")
-strikes_box = soup.find("div", class_="w-block-cards block-cards")
 
-strikes_list = []
+def fetch_strikes_page(url: str = STRIKES_URL) -> bytes:
+    try:
+        page = requests.get(url, timeout=10)
+        page.raise_for_status()
+        return page.content
+    
+    except requests.exceptions.RequestException as err:
+        logger.error("Error fetching strikes page %s", err)
+        raise
 
-#check the extracted content to avoid `AttributeError`
-if strikes_box:
+
+def parse_strikes(html_content: bytes) -> list[StrikeInfo]:
+    soup = BeautifulSoup(html_content, "html.parser")
+    strikes_box = soup.find("div", class_="w-block-cards block-cards")
+
+    if not strikes_box:
+        return []
+    
+    strikes_list: list[StrikeInfo] = []
+
     bus_strikes = strikes_box.find_all("a", class_="card")
 
     for card in bus_strikes:
@@ -63,11 +55,21 @@ if strikes_box:
             continue
 
         card_link = card.get("href")
+        
+        if not isinstance(card_link, str):
+            continue
 
         strike = StrikeInfo(
             date=card_date.text.strip(),
-            link=urljoin("https://tplfvg.it", card_link)
+            link=urljoin(BASE_URL, card_link)
         )
 
         strikes_list.append(strike)
+
+    return strikes_list
+
+
+def get_strikes() -> list[StrikeInfo]:
+    html_content = fetch_strikes_page()
+    return parse_strikes(html_content)
 
