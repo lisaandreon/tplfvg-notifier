@@ -1,3 +1,5 @@
+import logging
+from string import Template
 from telegram import Bot
 from telegram.error import TelegramError
 
@@ -8,17 +10,24 @@ __all__ = [
     "notify_new_strike"
 ]
 
-async def send_telegram_message(text:str, bot_token:str, chat_id:str):
-    bot = Bot(token=bot_token)  # TODO: bring this out to define bot only once
-    try:
-        await bot.send_message(
-            chat_id=chat_id,
-            text=text
-        )
-    except TelegramError as err:
-        print(f"Error while sending Telegram notification: {err}")  # TODO: use logging instead
+logger = logging.getLogger(__name__)
 
-async def notify_new_strike(new_strikes:list[StrikeInfo], bot_token:str, chat_id:str):
-    for strike in new_strikes:
-        message = f"New TPL FVG strike!\nDate: {strike.date}\nLink: {strike.link}" # TODO: use template string
-        await send_telegram_message(message, bot_token, chat_id)
+MESSAGE_TEMPLATE = Template('A new strike has been scheduled for $date. For further information: $link')
+
+
+async def send_telegram_message(bot: Bot, text:str, chat_id:str) -> None:
+    try:
+        await bot.send_message(chat_id=chat_id, text=text)
+    except TelegramError as err:
+        logger.error("Error sending Telegram message %s", err)
+
+
+async def notify_new_strike(new_strikes:list[StrikeInfo], bot_token:str, chat_id:str) -> None:
+    if not new_strikes:
+        return
+    
+    async with Bot(token=bot_token) as bot:
+        for strike in new_strikes:
+            message = MESSAGE_TEMPLATE.substitute(date=strike.date, link=strike.link)
+            await send_telegram_message(bot=bot, text=message, chat_id=chat_id)
+

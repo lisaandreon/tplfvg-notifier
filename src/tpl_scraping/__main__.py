@@ -26,3 +26,4 @@ except requests.exceptions.HTTPError as err:
 except requests.exceptions.RequestException as err:
     print(f"Generic network error: {err}")
     sys.exit(1)
+

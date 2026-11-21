@@ -20,3 +20,4 @@ saved_strikes.extend(new_strikes)
 data_to_save = [asdict(strike) for strike in saved_strikes]
 with open("tplstrikes.json", "w", encoding="utf-8") as file:
     json.dump(data_to_save, file, indent=4)
+

@@ -71,5 +71,3 @@ if strikes_box:
 
         strikes_list.append(strike)
 
-
-
