@@ -26,14 +26,9 @@ class StrikeInfo:
 
 
 def fetch_strikes_page(url: str = STRIKES_URL) -> bytes:
-    try:
-        page = requests.get(url, timeout=10)
-        page.raise_for_status()
-        return page.content
-    
-    except requests.exceptions.RequestException as err:
-        logger.error("Error fetching strikes page %s", err)
-        raise
+    page = requests.get(url, timeout=10)
+    page.raise_for_status()
+    return page.content
 
 
 def parse_strikes(html_content: bytes) -> list[StrikeInfo]:
@@ -70,6 +65,10 @@ def parse_strikes(html_content: bytes) -> list[StrikeInfo]:
 
 
 def get_strikes() -> list[StrikeInfo]:
-    html_content = fetch_strikes_page()
+    try:
+        html_content = fetch_strikes_page()
+    except requests.exceptions.RequestException as err:
+        logger.error("Error fetching strikes page %s", err)
+        return []
     return parse_strikes(html_content)
 
