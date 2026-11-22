@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,8 +14,8 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ARCHIVE_PATH = Path(__file__).with_name("tplstrikes.json")
-
+DATA_DIR = Path(os.getenv("DATA_DIR") or Path(__file__).parent)
+DEFAULT_ARCHIVE_PATH = DATA_DIR / "tplstrikes.json"
 
 def load_saved_strikes(file_path: Path = DEFAULT_ARCHIVE_PATH) -> list[StrikeInfo]:
     try:
