@@ -1,29 +1,50 @@
+import asyncio
+import logging
+import os
 import sys
 from pathlib import Path
-from urllib.parse import urljoin
 
-from dotenv import load_dotenv
 import requests
+from dotenv import load_dotenv
 
-#telegram bot credentials management
-load_dotenv(Path(__file__).with_name(".env"), override=True)
+from .archive import filter_and_save_new_strikes
+from .notifier import notify_new_strike
+from .scraper import get_strikes
 
-#network errors management
-URL = "https://tplfvg.it/it/servizi/scioperi/"
+logger = logging.getLogger(__name__)
 
-try:
-    page = requests.get(URL, timeout=10)
-    page.raise_for_status()
-except requests.exceptions.Timeout:
-    print("Error: the request took too long.")
-    sys.exit(1)
-except requests.exceptions.ConnectionError:
-    print("Server connection error.")
-    sys.exit(1)
-except requests.exceptions.HTTPError as err:
-    print(f"HTTP error received from the server: {err}")
-    sys.exit(1)
-except requests.exceptions.RequestException as err:
-    print(f"Generic network error: {err}")
-    sys.exit(1)
+async def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    )
 
+    load_dotenv(Path(__file__).with_name(".env"), override=True)
+
+    bot_token = os.getenv("BOT_TOKEN")
+    chat_id = os.getenv("CHAT_ID")
+
+    if not bot_token or not chat_id:
+        logger.error("Telegram credentials are missing in .env file")
+        sys.exit(1)
+
+
+    try:
+        scraped_strikes = get_strikes()
+    except requests.exceptions.RequestException as err:
+        logger.error("Unable to download strikes %s", err)
+        sys.exit(1)
+
+
+    new_strikes = filter_and_save_new_strikes(scraped_strikes)
+
+
+    await notify_new_strike(
+        new_strikes=new_strikes,
+        bot_token=bot_token,
+        chat_id=chat_id
+    )
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
