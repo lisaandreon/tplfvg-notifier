@@ -1,0 +1,14 @@
+services:
+  tplfvg-notifier:
+    image: ghcr.io/lisaandreon/tplfvg-notifier:latest
+    container_name: tplfvg-notifier
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHAT_ID=${CHAT_ID}
+      - DATA_DIR=/app/data
+    volumes:
+      - tpl_data:/app/data
+
+volumes:
+  tpl_data:
