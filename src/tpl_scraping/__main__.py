@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 
-import requests
+import httpx
 from dotenv import load_dotenv
 
 from .archive import filter_and_save_new_strikes
@@ -46,7 +46,7 @@ async def main() -> None:
                     bot_token=bot_token,
                     chat_id=chat_id
                 )
-        except requests.exceptions.RequestException as err:
+        except httpx.HTTPError as err:
             logger.error("Unable to download strikes %s", err)
     
         await asyncio.sleep(CHECK_INTERVAL)

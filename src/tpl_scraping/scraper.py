@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from urllib.parse import urljoin
 
-import requests
+import httpx
 from bs4 import BeautifulSoup
 
 __all__ = [
@@ -26,8 +26,10 @@ class StrikeInfo:
 
 
 def fetch_strikes_page(url: str = STRIKES_URL) -> bytes:
-    page = requests.get(url, timeout=10)
+    logger.info("Fetching strikes page from %s", url)
+    page = httpx.get(url, follow_redirects=True, timeout=10)
     page.raise_for_status()
+    logger.info("Response received with status %s", page.status_code)
     return page.content
 
 
@@ -67,7 +69,7 @@ def parse_strikes(html_content: bytes) -> list[StrikeInfo]:
 def get_strikes() -> list[StrikeInfo]:
     try:
         html_content = fetch_strikes_page()
-    except requests.exceptions.RequestException as err:
+    except httpx.HTTPError as err:
         logger.error("Error fetching strikes page %s", err)
         return []
     return parse_strikes(html_content)

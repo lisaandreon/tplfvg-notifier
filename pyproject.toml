@@ -10,8 +10,8 @@ requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "dotenv>=0.9.9",
+    "httpx>=0.28.1",
     "python-telegram-bot>=22.8",
-    "requests>=2.34.2",
 ]
 
 [project.scripts]
