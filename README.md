@@ -4,12 +4,19 @@
 
 ## Repository layout
 
-- scraper.py: //todo
-- archive.py: //todo
-- notifier.py: //todo
+- src/tpl_scraping/scraper.py: //todo
+- src/tpl_scraping/archive.py: //todo
+- src/tpl_scraping/notifier.py: //todo
+- src/tpl_scraping/main.py: //todo
 - docker-compose.yml: //todo
 
 ## Usage
+
+### Environment variables
+
+//todo
+
+### Deployment
 
 //todo
 
