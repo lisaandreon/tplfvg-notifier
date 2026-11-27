@@ -20,8 +20,6 @@ This repository contains the code for a Telegram bot I created that periodically
 
 ### Deployment
 
-### Docker Compose
-
 1. Create a `.env` file in the project root with your `BOT_TOKEN` and `CHAT_ID`.
 2. Run `docker compose up -d` to start the container in the background or deploy the compose file as a stack in Portainer.
 
