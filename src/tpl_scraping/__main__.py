@@ -23,6 +23,8 @@ async def main() -> None:
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
     )
 
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
     load_dotenv(Path(__file__).with_name(".env"), override=True)
 
     bot_token = os.getenv("BOT_TOKEN")
